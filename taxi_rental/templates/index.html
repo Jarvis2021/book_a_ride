@@ -91,6 +91,7 @@
 
         });
 
+        directionsRenderer.setMap(map);
 
         var onClickHandler = function()
         {
@@ -99,14 +100,13 @@
         };
         document.getElementById("submit").addEventListener("click", onClickHandler());
 
+
       }
 
 
       function calculateAndDisplayRoute(directionsService, directionsRenderer)
 
       {
-
-
         var user_location = document.getElementById('user_location').innerHTML;
         var user_destination = document.getElementById('user_destination').innerHTML;
         var request =   {
