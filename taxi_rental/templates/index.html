@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+  <title>Taxi Service</title>
+
+  {% load static %}
+  <link rel="stylesheet" href="{% static '/css/style.css' %}">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+
+</head>
+<body>
+
+  <div class="container">
+
+    <div class="container-1">
+      <h5>Welcome to Book a Ride Service!</h5>
+      <div class="section-1">
+        <form id="userdetails" action="/fetch" method="POST">
+          {% csrf_token %}
+          <label> Enter you Location: </label>
+          <input id="location" type="text" name="location" placeholder="current location"> <br><br>
+          <label> Enter you Destination: </label>
+          <input id="destination" type="text" name="destination" placeholder="destination location"> <br><br>
+          <button class="btn btn-light btn-primary btn-sm" type="submit" id="submit"> Go! </button>
+        </form>
+        <li id="user_location" hidden> {{request.session.start}} </li>
+        <li id="user_destination" hidden> {{request.session.end}} </li>
+      </div>
+
+      <div class="section-2">
+
+
+
+      </div>
+    </div>
+
+    <div id="container-2">
+      <div id="map"></div>
+      <h4 style="font-weight: lighter"> <span id="distance"> </span> <span id="duration"></span> </h4>
+    </div>
+    <script>
+
+      $('radio').click(function(e)
+      {
+        if (e.ctrlKey) {
+          $(this).prop('checked', false);
+        }
+      });
+
+      var map;
+
+      function initMap()
+
+      {
+        var directionsService = new google.maps.DirectionsService();
+        var directionsRenderer = new google.maps.DirectionsRenderer();
+        google.maps.event.addDomListener(window, 'load', function ()
+
+        {
+          var places = new google.maps.places.Autocomplete(document.getElementById('location'));
+          google.maps.event.addListener(places, 'place_changed', function ()
+
+          {
+            var place = places.getPlace();
+
+          });
+
+          var places1 = new google.maps.places.Autocomplete(document.getElementById('destination'));
+          google.maps.event.addListener(places1, 'place_changed', function ()
+
+          {
+            var place1 = places1.getPlace();
+
+          });
+        });
+
+        var default_loc = {lat: 40.758896, lng: -73.98130}
+        map = new google.maps.Map(document.getElementById('map'), {
+
+          center: default_loc,
+          zoom: 13,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+
+        });
+
+
+        var onClickHandler = function()
+        {
+          calculateAndDisplayRoute(directionsService, directionsRenderer);
+
+        };
+        document.getElementById("submit").addEventListener("click", onClickHandler());
+
+      }
+
+
+      function calculateAndDisplayRoute(directionsService, directionsRenderer)
+
+      {
+
+
+        var user_location = document.getElementById('user_location').innerHTML;
+        var user_destination = document.getElementById('user_destination').innerHTML;
+        var request =   {
+            origin: user_location,
+            destination: user_destination,
+            travelMode: google.maps.DirectionsTravelMode.DRIVING,
+          }
+
+        directionsService.route (request, function(response, status)
+        {
+          if (status == 'OK')
+          {
+            directionsRenderer.setDirections(response);
+            $('.section-2').append(resultform);
+            var service = new google.maps.DistanceMatrixService();
+            service.getDistanceMatrix(
+              {
+                origins: [user_location],
+                destinations: [user_destination],
+                travelMode: google.maps.TravelMode.DRIVING,
+                unitSystem: google.maps.UnitSystem.IMPERIAL,
+                avoidHighways: false,
+                avoidTolls: false
+              }, function (response, status)
+              {
+                if (status == google.maps.DistanceMatrixStatus.OK && response.rows[0].elements[0].status != "ZERO_RESULTS")
+                {
+                  var distance = response.rows[0].elements[0].distance.text;
+                  var duration = response.rows[0].elements[0].duration.text;
+                  document.getElementById("distance").innerHTML = ("Totatl Distance: " + distance );
+                  document.getElementById("duration").innerHTML = ("Average Time: " + duration )
+                  var dis = [];
+                  for (var i=0; i< distance.length-3; i++)
+                  {
+                    dis += distance[i].split(',').join("");
+                  }
+                  console.log(dis)
+
+                  const formatter = new Intl.NumberFormat('en-US',
+                  {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2
+                  })
+                  document.getElementById("uber").innerHTML = (formatter.format(dis * 2.75));
+                  document.getElementById("via").innerHTML = (formatter.format(dis * 2.45));
+                  document.getElementById("lyft").innerHTML = (formatter.format(dis * 2.05));
+                }
+              });
+            }
+            else
+            {
+              alert("Error: " + "No Results Found");
+            }
+          });
+
+
+
+            var resultform = `<form  id="results" action="/checkout" method='POST'>
+              {% csrf_token %}
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col"> Service </th>
+                    <th scope="col"> Total Amount </th>
+                    </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td> Uber </td>
+                    <td id="uber">  </td>
+                    <td> <input type="radio" name="colors" > </td>
+                  </tr>
+                  <tr>
+                    <td> Via </td>
+                    <td id="via"></td>
+                    <td> <input type="radio" name="colors" > </td>
+                  </tr>
+                  <tr>
+                    <td> Lyft </td>
+                    <td id="lyft"></td>
+                    <td> <input type="radio" name="colors" > </td>
+                  </tr>
+                  </tbody>
+              </table> <br>
+              <button class="btn btn-light btn-primary btn-sm" type="submit" id="submit-1"> Proceed </button>
+
+            </form>`
+          }
+    </script>
+   <script src="https://maps.googleapis.com/maps/api/js?units=imperial&key=AIzaSyB360oOAHM6MfTj8JFLFBTGcHqT5GBE-wE&libraries=places&callback=initMap" async defer>
+   </script>
+</div>
+</body>
+</html>
